@@ -1,7 +1,7 @@
 from builtins import object
 import numpy as np
 
-from ..layers import *
+from ..layers_mantas import *
 from ..fast_layers import *
 from ..layer_utils import *
 

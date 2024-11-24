@@ -2,7 +2,7 @@ from builtins import range
 from builtins import object
 import numpy as np
 
-from ..layers import *
+from ..layers_mantas import *
 from ..layer_utils import *
 
 

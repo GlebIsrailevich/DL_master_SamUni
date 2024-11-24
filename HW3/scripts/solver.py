@@ -1,7 +1,7 @@
 from __future__ import print_function, division
-from future import standard_library
+# from future import standard_library
 
-standard_library.install_aliases()
+# standard_library.install_aliases()
 from builtins import range
 from builtins import object
 import os
@@ -116,11 +116,10 @@ class Solver(object):
           epoch.
         """
         self.model = model
-        self.X_train = data["X_train"]
-        self.y_train = data["y_train"]
-        self.X_val = data["X_val"]
-        self.y_val = data["y_val"]
-
+        self.X_train = data['X_train']
+        self.y_train = data['y_train']
+        self.X_val = data['X_val']
+        self.y_val = data['y_val']
         # Unpack keyword arguments
         self.update_rule = kwargs.pop("update_rule", "sgd")
         self.optim_config = kwargs.pop("optim_config", {})
