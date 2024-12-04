@@ -237,7 +237,7 @@ class TwoLayerNet(object):
       #########################################################################
 
       if verbose and it % 100 == 0:
-        print('iteration %d / %d: loss %f' % (it, num_iters, loss))
+        print(f'iteration {it} / {num_iters}: loss {loss}')
 
       # Every epoch, check train and val accuracy and decay learning rate.
       if it % iterations_per_epoch == 0:
@@ -285,3 +285,124 @@ class TwoLayerNet(object):
     ###########################################################################
 
     return y_pred
+  
+
+class ThreeLayerNet(object):
+  def __init__(self, input_size, hidden_size1, hidden_size2, num_classes):
+      self.params = {}
+      self.params['W1'] = np.random.randn(input_size, hidden_size1) / np.sqrt(input_size)
+      self.params['b1'] = np.zeros(hidden_size1)
+      self.params['W2'] = np.random.randn(hidden_size1, hidden_size2) / np.sqrt(hidden_size1)
+      self.params['b2'] = np.zeros(hidden_size2)
+      self.params['W3'] = np.random.randn(hidden_size2, num_classes) / np.sqrt(hidden_size2)
+      self.params['b3'] = np.zeros(num_classes)
+
+  def loss(self, X, y=None, reg=0.0):
+      W1, b1 = self.params['W1'], self.params['b1']
+      W2, b2 = self.params['W2'], self.params['b2']
+      W3, b3 = self.params['W3'], self.params['b3']
+
+      # Forward pass
+      scores = None
+      h1 = np.maximum(0, X.dot(W1) + b1)  # ReLU activation for the first hidden layer
+      h2 = np.maximum(0, h1.dot(W2) + b2)  # ReLU activation for the second hidden layer
+      scores = h2.dot(W3) + b3
+
+      if y is None:
+          return scores
+
+      # Compute the loss
+      num_train = X.shape[0]
+      exp_scores = np.exp(scores)
+      probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
+      correct_logprobs = -np.log(probs[range(num_train), y])
+      data_loss = np.sum(correct_logprobs) / num_train
+      reg_loss = 0.5 * reg * (np.sum(W1 * W1) + np.sum(W2 * W2) + np.sum(W3 * W3))
+      loss = data_loss + reg_loss
+
+      # Backward pass
+      grads = {}
+      dscores = probs
+      dscores[range(num_train), y] -= 1
+      dscores /= num_train
+
+      grads['W3'] = h2.T.dot(dscores)
+      grads['b3'] = np.sum(dscores, axis=0)
+
+      dh2 = dscores.dot(W3.T)
+      dh2[h2 <= 0] = 0
+
+      grads['W2'] = h1.T.dot(dh2)
+      grads['b2'] = np.sum(dh2, axis=0)
+
+      dh1 = dh2.dot(W2.T)
+      dh1[h1 <= 0] = 0
+
+      grads['W1'] = X.T.dot(dh1)
+      grads['b1'] = np.sum(dh1, axis=0)
+
+      # Add regularization gradient contribution
+      grads['W3'] += reg * W3
+      grads['W2'] += reg * W2
+      grads['W1'] += reg * W1
+
+      return loss, grads
+
+  def train(self, X, y, X_val, y_val,
+            learning_rate=1e-3, learning_rate_decay=0.95,
+            reg=0.25, num_iters=100,
+            batch_size=200, verbose=False):
+      num_train = X.shape[0]
+      iterations_per_epoch = max(num_train // batch_size, 1)
+
+      # Use SGD to optimize the parameters
+      loss_history = []
+      train_acc_history = []
+      val_acc_history = []
+
+      for it in range(num_iters):
+          X_batch = None
+          y_batch = None
+
+          # Create a random minibatch
+          idx = np.random.choice(num_train, batch_size, replace=True)
+          X_batch = X[idx]
+          y_batch = y[idx]
+
+          # Compute loss and gradients using the current minibatch
+          loss, grads = self.loss(X_batch, y=y_batch, reg=reg)
+          loss_history.append(loss)
+
+          # Update the parameters
+          for param in self.params:
+              self.params[param] -= learning_rate * grads[param]
+
+          if verbose and it % 100 == 0:
+              print(f'iteration {it}/{num_iters}: loss {loss}')
+
+          # Every epoch, check train and val accuracy and decay learning rate
+          if it % iterations_per_epoch == 0:
+              train_acc = (self.predict(X_batch) == y_batch).mean()
+              val_acc = (self.predict(X_val) == y_val).mean()
+              train_acc_history.append(train_acc)
+              val_acc_history.append(val_acc)
+
+              # Decay learning rate
+              learning_rate *= learning_rate_decay
+
+      return {
+          'loss_history': loss_history,
+          'train_acc_history': train_acc_history,
+          'val_acc_history': val_acc_history,
+      }
+
+  def predict(self, X):
+      W1, b1 = self.params['W1'], self.params['b1']
+      W2, b2 = self.params['W2'], self.params['b2']
+      W3, b3 = self.params['W3'], self.params['b3']
+
+      h1 = np.maximum(0, X.dot(W1) + b1)
+      h2 = np.maximum(0, h1.dot(W2) + b2)
+      scores = h2.dot(W3) + b3
+      y_pred = np.argmax(scores, axis=1)
+      return y_pred
